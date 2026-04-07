@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum DemoRole {
+  OPERADOR_BODEGA
+  MANTENIMIENTO
+  COMPRAS_ABASTECIMIENTO
+  GERENCIA
+  ADMINISTRADOR
+}
+
+enum Criticality {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AssetStatus {
+  OPERATIONAL
+  MAINTENANCE
+  OUT_OF_SERVICE
+  IN_TRANSIT
+}
+
+enum RiskLevel {
+  GREEN
+  YELLOW
+  RED
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  PREDICTIVE
+}
+
+enum LogisticsCondition {
+  LOCAL
+  IMPORTED
+  SPECIAL_TRANSPORT
+}
+
+model Asset {
+  id                            String              @id @default(cuid())
+  assetCode                     String              @unique
+  name                          String
+  category                      String
+  manufacturer                  String?
+  model                         String?
+  serialNumber                  String?
+  location                      String
+  status                        AssetStatus         @default(OPERATIONAL)
+  criticality                   Criticality
+  stockQty                      Int
+  minStock                      Int
+  leadTimeDays                  Int
+  estimatedUsefulLifeHours      Int
+  estimatedUsefulLifeYears      Int
+  remainingUsefulLifeHours      Int
+  remainingUsefulLifeYears      Int
+  usefulLifeConsumedPercent     Float
+  isInTransit                   Boolean             @default(false)
+  requestDate                   DateTime?
+  dispatchDate                  DateTime?
+  estimatedArrivalDate          DateTime?
+  totalLeadTimeDays             Int?
+  remainingDays                 Int?
+  origin                        String?
+  logisticsCondition            LogisticsCondition?
+  logisticsNotes                String?
+  createdAt                     DateTime            @default(now())
+  updatedAt                     DateTime            @updatedAt
+  maintenanceRecords            MaintenanceRecord[]
+  changeLogs                    ChangeLog[]
+  supplierOffers                SupplierOffer[]
+}
+
+model MaintenanceRecord {
+  id                            String          @id @default(cuid())
+  assetId                       String
+  maintenanceStatus             String
+  maintenanceType               MaintenanceType
+  maintenanceDetail             String
+  startDate                     DateTime
+  estimatedEndDate              DateTime?
+  accumulatedMaintenanceHours   Float
+  maintenanceCost               Float
+  responsibleParty              String
+  maintenanceReason             String
+  notes                         String?
+  createdAt                     DateTime        @default(now())
+  asset                         Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+}
+
+model ChangeLog {
+  id          String   @id @default(cuid())
+  assetId     String
+  changedAt   DateTime @default(now())
+  changedBy   String
+  field       String
+  oldValue    String
+  newValue    String
+  reason      String
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+}
+
+model Supplier {
+  id                String          @id @default(cuid())
+  name              String
+  country           String
+  contact           String?
+  rating            Float
+  avgDeliveryDays   Int
+  qualityScore      Float
+  offers            SupplierOffer[]
+}
+
+model SupplierOffer {
+  id                String   @id @default(cuid())
+  assetId           String
+  supplierId        String
+  unitPrice         Float
+  currency          String
+  deliveryDays      Int
+  warrantyMonths    Int
+  isPreferred       Boolean  @default(false)
+  lastUpdated       DateTime @default(now())
+  asset             Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  supplier          Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
